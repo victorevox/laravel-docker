@@ -3,29 +3,43 @@ services:
 
   # The Application
   app:
+    container_name: app
     build:
       context: ./
       dockerfile: app.dockerfile
-    working_dir: /usr/local/apache2/htdocs
+    networks:
+    - backend
+    working_dir: /var/www
     volumes:
-      - ./app:/usr/local/apache2/htdocs
+      - ./app:/var/www
     environment:
       - "DB_PORT=3306"
       - "DB_HOST=database"
 
   # The Web Server
   web:
+    container_name: apache
+    depends_on:
+      - app
+      - database
     build:
       context: ./
       dockerfile: web.dockerfile
-    working_dir: /usr/local/apache2/htdocs
+    working_dir: /var/www
+    # volumes:
+      # - ./app:/var/www
     volumes_from:
       - app
     ports:
-      - 8080:80
+      - 8080:8080
+      - 9000:9000
+    networks:
+      - frontend
+      - backend
 
   # The Database
   database:
+    container_name: mysql
     image: mysql:5.6
     volumes:
       - dbdata:/var/lib/mysql
@@ -38,3 +52,7 @@ services:
 
 volumes:
   dbdata:
+
+networks:
+  frontend:
+  backend:
