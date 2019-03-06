@@ -1,58 +1,64 @@
-version: '2'
+version: '3'
 services:
 
-  # The Application
+  #PHP Service
   app:
-    container_name: app
     build:
-      context: ./
+      context: .
       dockerfile: app.dockerfile
-    networks:
-    - backend
+    image: digitalocean.com/php
+    container_name: app
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
     working_dir: /var/www
     volumes:
       - ./app:/var/www
-    environment:
-      - "DB_PORT=3306"
-      - "DB_HOST=database"
-
-  # The Web Server
-  web:
-    container_name: apache
-    depends_on:
-      - app
-      - database
-    build:
-      context: ./
-      dockerfile: web.dockerfile
-    working_dir: /var/www
-    # volumes:
-      # - ./app:/var/www
-    volumes_from:
-      - app
-    ports:
-      - 8080:8080
-      - 9000:9000
+      - ./local.ini:/usr/local/etc/php/conf.d/local.ini
     networks:
-      - frontend
-      - backend
+      - app-network
 
-  # The Database
-  database:
-    container_name: mysql
-    image: mysql:5.6
-    volumes:
-      - dbdata:/var/lib/mysql
-    environment:
-      - "MYSQL_ROOT_PASSWORD=secret"
-      - "MYSQL_DATABASE=homestead"
-      - "MYSQL_USER=homestead"
+  #Nginx Service
+  web:
+    image: nginx:alpine
+    container_name: web
+    restart: unless-stopped
+    tty: true
     ports:
-        - "33061:3306"
+      - "8080:8080"
+      - "443:443"
+    volumes:
+      - ./app:/var/www
+      - ./vhost.nginx.conf:/etc/nginx/conf.d/vhost.nginx.conf
+    networks:
+      - app-network
 
+  #MySQL Service
+  db:
+    image: mysql:5.7.22
+    container_name: db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_ROOT_PASSWORD: pass
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - dbdata:/var/lib/mysql/
+      - ./my.cnf:/etc/mysql/my.cnf
+    networks:
+      - app-network
+
+#Docker Networks
+networks:
+  app-network:
+    driver: bridge
+#Volumes
 volumes:
   dbdata:
-
-networks:
-  frontend:
-  backend:
+    driver: local
