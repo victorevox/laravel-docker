@@ -7,7 +7,9 @@
 #     && docker-php-ext-install mcrypt pdo_mysql
 
 
-FROM php:7.2-fpm
+# FROM php:7.2-fpm
+FROM php:5.6-fpm
+
 
 # Copy composer.lock and composer.json
 # COPY composer.lock composer.json /var/www/
@@ -25,7 +27,7 @@ RUN apt-get update && apt-get install -y \
     locales \
     zip \
     jpegoptim optipng pngquant gifsicle \
-    vim \
+    nano \
     unzip \
     git \
     curl
